@@ -14,13 +14,91 @@
 #define ACC_ENUM	(0x4000)  /* Declared as an enum type.                                                          */
 
 
-typedef unsigned char u1_t;
-typedef unsigned short u2_t;
-typedef unsigned int u4_t;
+typedef uint8_t u1_t;
+typedef uint16_t u2_t;
+typedef uint32_t u4_t;
+
+
+
+typedef enum constant_pool_tags_e {
+  CONSTANT_CLASS = 7,
+  CONSTANT_FIELDREF = 9,
+  CONSTANT_METHODREF = 10,
+  CONSTANT_INTERFACE_METHODREF = 11,
+  CONSTANT_STRING = 8,
+  CONSTANT_INTEGER = 3,
+  CONSTANT_FLOAT = 4,
+  CONSTANT_LONG = 5,
+  CONSTANT_DOUBLE = 6,
+  CONSTANT_NAME_AND_TYPE = 12,
+  CONSTANT_UTF8 = 1,
+  CONSTANT_METHOD_HANDLE = 15,
+  CONSTANT_METHOD_TYPE = 16,
+  CONSTANT_INVOKE_DYNAMIC = 18
+} constant_pool_tags_t;
+
+
+typedef struct constant_pool_class_s {
+    u2_t name_index;
+} constant_pool_class_t;
+
+/* fieldref, methodref, interface_methodref */
+typedef struct constant_pool_ref_s {
+    u2_t class_index;
+    u2_t name_and_type_index;
+} constant_pool_ref_t;
+
+typedef struct constant_pool_string_s {
+    u2_t name_index;
+} constant_pool_string_t;
+
+/* integer, float */
+typedef struct constant_pool_number4_s {
+    u2_t name_index;
+    u4_t bytes;
+} constant_pool_number4_t;
+
+/* long, double */
+typedef struct constant_pool_number8_s {
+    u2_t name_index;
+    u4_t high_bytes;
+    u4_t low_bytes;
+} constant_pool_number8_t;
+
+typedef struct constant_pool_name_and_type_s {
+    u2_t name_index;
+    u2_t descriptor_index;
+} constant_pool_name_and_type_t;
+
+typedef struct constant_pool_utf8_s {
+    u2_t length;
+    u1_t *bytes;
+} constant_pool_utf8_t;
+
+typedef struct constant_pool_method_handle_s {
+    u1_t reference_kind;
+    u2_t reference_index;
+} constant_pool_methodhandle_t;
+
+typedef struct constant_pool_method_type_s {
+    u2_t descriptor_index;
+} constant_pool_methodtype_t;
+
+typedef struct constant_pool_invoke_dynamic_s {
+    u2_t bootstrap_method_attr_index;
+    u2_t name_and_type_index;
+} constant_pool_invoke_dynamic_t;
+
+
 
 typedef struct cp_info_s {
     u1_t tag;
-    u1_t *info;
+    union {
+	constant_pool_class_t class_info;
+	constant_pool_ref_t fieldref;
+	constant_pool_ref_t methodref;
+	constant_pool_ref_t interface_methodref;
+    } u;
 } cp_info_t;
 
 typedef struct attribute_info_s {
