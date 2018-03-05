@@ -78,11 +78,11 @@ typedef struct constant_pool_utf8_s {
 typedef struct constant_pool_method_handle_s {
     u1_t reference_kind;
     u2_t reference_index;
-} constant_pool_methodhandle_t;
+} constant_pool_method_handle_t;
 
 typedef struct constant_pool_method_type_s {
     u2_t descriptor_index;
-} constant_pool_methodtype_t;
+} constant_pool_method_type_t;
 
 typedef struct constant_pool_invoke_dynamic_s {
     u2_t bootstrap_method_attr_index;
@@ -94,10 +94,20 @@ typedef struct constant_pool_invoke_dynamic_s {
 typedef struct cp_info_s {
     u1_t tag;
     union {
-	constant_pool_class_t class_info;
-	constant_pool_ref_t fieldref;
-	constant_pool_ref_t methodref;
-	constant_pool_ref_t interface_methodref;
+	constant_pool_class_t cp_class_info;
+	constant_pool_ref_t cp_fieldref;
+	constant_pool_ref_t cp_methodref;
+	constant_pool_ref_t cp_interface_methodref;
+	constant_pool_string_t cp_string;
+	constant_pool_number4_t cp_integer;
+	constant_pool_number4_t cp_float;
+	constant_pool_number8_t cp_long;
+	constant_pool_number8_t cp_double;
+	constant_pool_name_and_type_t cp_name_and_type;
+	constant_pool_utf8_t cp_utf8;
+	constant_pool_method_handle_t cp_method_handle;
+	constant_pool_method_type_t cp_method_type;
+	constant_pool_invoke_dynamic_t cp_invoke_dynamic;
     } u;
 } cp_info_t;
 
