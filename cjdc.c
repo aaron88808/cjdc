@@ -37,6 +37,7 @@ static int read_constant_invoke_dynamic(int fd, cp_info_t *constant_pool_element
 static void print_class_file (class_file_t *class_file);
 static void print_constant_pool(class_file_t *class_file);
 static void print_constant_pool_element(int i, cp_info_t *constant_pool_element);
+static void print_access_flags(class_file_t *class_file);
 
 static int read_bytes(int fd, void *buffer, int requested);
 static int read_bytes_or_error(int fd, void *buffer, int requested, int so_far);
@@ -130,6 +131,12 @@ static class_file_t *read_class_file(int fd) {
 	}
     }
     
+    if (read_bytes(fd, &(result->access_flags), sizeof(result->access_flags)) < 0) {
+	fprintf(stderr, "%s: failed to read access_flags\n", program);
+	goto ERR_RETURN;
+    }
+    result->access_flags = ntohs(result->access_flags);
+
     return result;
 
 ERR_RETURN:
@@ -379,9 +386,9 @@ static int read_constant_utf8(int fd, cp_info_t *constant_pool_element){
     }
     cp_utf8->length = ntohs(cp_utf8->length);
 
-    cp_utf8->bytes = calloc(cp_utf8->length, sizeof(u1_t));
+    cp_utf8->bytes = calloc(1 + cp_utf8->length, sizeof(u1_t));
     if (cp_utf8->bytes == NULL) {
-	fprintf(stderr, "%s: could not allocate %d bytes for string constant\n", program, cp_utf8->length);
+	fprintf(stderr, "%s: could not allocate %d bytes for string constant\n", program, 1 + cp_utf8->length);
 	return -1;
     }
     
@@ -447,6 +454,7 @@ static void print_class_file (class_file_t *class_file) {
     printf("major_version: %d\n", class_file->major_version);
     printf("constant_pool_count: %d\n", class_file->constant_pool_count);
     print_constant_pool(class_file);
+    print_access_flags(class_file);
 }
 
 static void print_constant_pool(class_file_t *class_file) {
@@ -518,7 +526,7 @@ static void print_constant_pool_element(int i, cp_info_t *constant_pool_element)
 		constant_pool_element->u.cp_name_and_type.descriptor_index);
 	break;
     case CONSTANT_UTF8:
-	/* TODO be more carefull about UTF8 */
+	/* TODO be more careful about UTF8 */
 	fprintf(stderr, "%s: [%d] UTF8, length=%d, bytes='%s'\n", program, i,
 		constant_pool_element->u.cp_utf8.length,
 		constant_pool_element->u.cp_utf8.bytes);
@@ -541,6 +549,32 @@ static void print_constant_pool_element(int i, cp_info_t *constant_pool_element)
 	fprintf(stderr, "%s: unknown constant pool tag %d\n", program, constant_pool_element->tag);
 	break;
     }
+}
+
+static void print_access_flags(class_file_t *class_file) {
+    fprintf(stderr, "%s: ACCESS:", program);
+    if (ACC_PUBLIC(class_file->access_flags)) {
+        fprintf(stderr, " public");
+    }
+    if (ACC_FINAL(class_file->access_flags)) {
+        fprintf(stderr, " final");
+    }
+    if (ACC_SUPER(class_file->access_flags)) {
+        fprintf(stderr, " super");
+    }
+    if (ACC_INTERFACE(class_file->access_flags)) {
+        fprintf(stderr, " interface");
+    }
+    if (ACC_SYNTHETIC(class_file->access_flags)) {
+        fprintf(stderr, " synthetic");
+    }
+    if (ACC_ANNOTATION(class_file->access_flags)) {
+        fprintf(stderr, " annotation");
+    }
+    if (ACC_ENUM(class_file->access_flags)) {
+        fprintf(stderr, " enum");
+    }
+    fprintf(stderr, "\n");
 }
 
 static int read_bytes(int fd, void *buffer, int requested) {

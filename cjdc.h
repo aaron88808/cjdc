@@ -3,40 +3,35 @@
 
 #define CLASS_FILE_MAGIC (0xCAFEBABE)
 
-/* class access and property modifiers */
-#define ACC_PUBLIC	(0x0001)  /* Declared public; may be accessed from outside its package.                         */
-#define ACC_FINAL	(0x0010)  /* Declared final; no subclasses allowed.						*/
-#define ACC_SUPER	(0x0020)  /* Treat superclass methods specially when invoked by the invokespecial instruction.	*/
-#define ACC_INTERFACE	(0x0200)  /* Is an interface, not a class.							*/
-#define ACC_ABSTRACT	(0x0400)  /* Declared abstract; must not be instantiated.					*/
-#define ACC_SYNTHETIC	(0x1000)  /* Declared synthetic; not present in the source code.				*/
-#define ACC_ANNOTATION  (0x2000)  /* Declared as an annotation type.							*/
-#define ACC_ENUM	(0x4000)  /* Declared as an enum type.                                                          */
-
-
 typedef uint8_t u1_t;
 typedef uint16_t u2_t;
 typedef uint32_t u4_t;
 
-
-
 typedef enum constant_pool_tags_e {
-  CONSTANT_CLASS = 7,
-  CONSTANT_FIELDREF = 9,
-  CONSTANT_METHODREF = 10,
-  CONSTANT_INTERFACE_METHODREF = 11,
-  CONSTANT_STRING = 8,
-  CONSTANT_INTEGER = 3,
-  CONSTANT_FLOAT = 4,
-  CONSTANT_LONG = 5,
-  CONSTANT_DOUBLE = 6,
-  CONSTANT_NAME_AND_TYPE = 12,
-  CONSTANT_UTF8 = 1,
-  CONSTANT_METHOD_HANDLE = 15,
-  CONSTANT_METHOD_TYPE = 16,
-  CONSTANT_INVOKE_DYNAMIC = 18
+    CONSTANT_CLASS			= 7,
+    CONSTANT_FIELDREF			= 9,
+    CONSTANT_METHODREF			= 10,
+    CONSTANT_INTERFACE_METHODREF	= 11,
+    CONSTANT_STRING			= 8,
+    CONSTANT_INTEGER			= 3,
+    CONSTANT_FLOAT			= 4,
+    CONSTANT_LONG			= 5,
+    CONSTANT_DOUBLE			= 6,
+    CONSTANT_NAME_AND_TYPE		= 12,
+    CONSTANT_UTF8			= 1,
+    CONSTANT_METHOD_HANDLE		= 15,
+    CONSTANT_METHOD_TYPE		= 16,
+    CONSTANT_INVOKE_DYNAMIC		= 18
 } constant_pool_tags_t;
 
+#define ACC_PUBLIC(x)      ((x) & 0x0001)
+#define ACC_FINAL(x)       ((x) & 0x0010)
+#define ACC_SUPER(x)       ((x) & 0x0020)
+#define ACC_INTERFACE(x)   ((x) & 0x0200)
+#define ACC_ABSTRACT(x)    ((x) & 0x0400)
+#define ACC_SYNTHETIC(x)   ((x) & 0x1000)
+#define ACC_ANNOTATION(x)  ((x) & 0x2000)
+#define ACC_ENUM(x)        ((x) & 0x4000)
 
 typedef struct constant_pool_class_s {
     u2_t name_index;
@@ -94,20 +89,20 @@ typedef struct constant_pool_invoke_dynamic_s {
 typedef struct cp_info_s {
     u1_t tag;
     union {
-	constant_pool_class_t cp_class_info;
-	constant_pool_ref_t cp_fieldref;
-	constant_pool_ref_t cp_methodref;
-	constant_pool_ref_t cp_interface_methodref;
-	constant_pool_string_t cp_string;
-	constant_pool_number4_t cp_integer;
-	constant_pool_number4_t cp_float;
-	constant_pool_number8_t cp_long;
-	constant_pool_number8_t cp_double;
-	constant_pool_name_and_type_t cp_name_and_type;
-	constant_pool_utf8_t cp_utf8;
-	constant_pool_method_handle_t cp_method_handle;
-	constant_pool_method_type_t cp_method_type;
-	constant_pool_invoke_dynamic_t cp_invoke_dynamic;
+        constant_pool_class_t cp_class_info;
+        constant_pool_ref_t cp_fieldref;
+        constant_pool_ref_t cp_methodref;
+        constant_pool_ref_t cp_interface_methodref;
+        constant_pool_string_t cp_string;
+        constant_pool_number4_t cp_integer;
+        constant_pool_number4_t cp_float;
+        constant_pool_number8_t cp_long;
+        constant_pool_number8_t cp_double;
+        constant_pool_name_and_type_t cp_name_and_type;
+        constant_pool_utf8_t cp_utf8;
+        constant_pool_method_handle_t cp_method_handle;
+        constant_pool_method_type_t cp_method_type;
+        constant_pool_invoke_dynamic_t cp_invoke_dynamic;
     } u;
 } cp_info_t;
 
