@@ -32,12 +32,21 @@ static int read_constant_utf8(int fd, cp_info_t *constant_pool_element);
 static int read_constant_method_handle(int fd, cp_info_t *constant_pool_element);
 static int read_constant_method_type(int fd, cp_info_t *constant_pool_element);
 static int read_constant_invoke_dynamic(int fd, cp_info_t *constant_pool_element);
-
+static int read_field_info_element(int fd, field_info_t *field_info_element);
+static int read_attributes(int fd, attribute_info_t *attribute_info, int count);
 
 static void print_class_file (class_file_t *class_file);
 static void print_constant_pool(class_file_t *class_file);
 static void print_constant_pool_element(int i, cp_info_t *constant_pool_element);
 static void print_access_flags(class_file_t *class_file);
+static void print_this_class(class_file_t *class_file);
+static void print_super_class(class_file_t *class_file);
+static void print_interfaces_count(class_file_t *class_file);
+static void print_interfaces(class_file_t *class_file);
+static void print_fields_count(class_file_t *class_file);
+static void print_fields(class_file_t *class_file);
+static void print_field(field_info_t *field_info_element);
+static void print_attributes(u2_t attributes_count, attribute_info_t *attribute);
 
 static int read_bytes(int fd, void *buffer, int requested);
 static int read_bytes_or_error(int fd, void *buffer, int requested, int so_far);
@@ -137,6 +146,52 @@ static class_file_t *read_class_file(int fd) {
     }
     result->access_flags = ntohs(result->access_flags);
 
+    if (read_bytes(fd, &(result->this_class), sizeof(result->this_class)) < 0) {
+	fprintf(stderr, "%s: failed to read this_class\n", program);
+	goto ERR_RETURN;
+    }
+    result->this_class = ntohs(result->this_class);
+
+    if (read_bytes(fd, &(result->super_class), sizeof(result->super_class)) < 0) {
+	fprintf(stderr, "%s: failed to read super_class\n", program);
+	goto ERR_RETURN;
+    }
+    result->super_class = ntohs(result->super_class);
+
+    if (read_bytes(fd, &(result->interfaces_count), sizeof(result->interfaces_count)) < 0) {
+	fprintf(stderr, "%s: failed to read interfaces_count\n", program);
+	goto ERR_RETURN;
+    }
+    result->interfaces_count = ntohs(result->interfaces_count);
+
+    if (result->interfaces_count) {
+        result->interfaces = calloc(result->interfaces_count, sizeof(u2_t));
+    }
+    for (i = 0; i < result->interfaces_count; i++) {
+        if (read_bytes(fd, &(result->interfaces[i]), sizeof(result->interfaces[i])) < 0) {
+            fprintf(stderr, "%s: failed to read interfaces[%d]\n", program, i);
+            goto ERR_RETURN;
+        }
+        result->interfaces[i] = ntohs(result->interfaces[i]);
+    }
+
+    if (read_bytes(fd, &(result->fields_count), sizeof(result->fields_count)) < 0) {
+	fprintf(stderr, "%s: failed to read fields_count\n", program);
+	goto ERR_RETURN;
+    }
+    result->fields_count = ntohs(result->fields_count);
+
+    if (result->fields_count) {
+        result->fields = calloc(result->fields_count, sizeof(field_info_t));
+    }
+    field_info_t *field_info_element = result->fields;
+    for (i = 0; i < result->fields_count; i++) {
+        if (read_field_info_element(fd, field_info_element++) < 0) {
+            fprintf(stderr, "%s: failed to read fields[%d]\n", program, i);
+            goto ERR_RETURN;
+        }
+    }
+
     return result;
 
 ERR_RETURN:
@@ -205,6 +260,71 @@ static int read_constant_pool_element(int fd, cp_info_t *constant_pool_element) 
 	break;
     }
     return result;
+}
+
+static int read_field_info_element(int fd, field_info_t *field_info_element) {
+    if (read_bytes(fd, &field_info_element->access_flags, sizeof(field_info_element->access_flags))) {
+	fprintf(stderr, "%s: could not read field info access_flags\n", program);
+	return -1;
+    }
+    field_info_element->access_flags = ntohs(field_info_element->access_flags);
+
+    if (read_bytes(fd, &field_info_element->name_index, sizeof(field_info_element->name_index))) {
+	fprintf(stderr, "%s: could not read field info name_index\n", program);
+	return -1;
+    }
+    field_info_element->name_index = ntohs(field_info_element->name_index);
+
+    if (read_bytes(fd, &field_info_element->descriptor_index, sizeof(field_info_element->descriptor_index))) {
+	fprintf(stderr, "%s: could not read field info descriptor_index\n", program);
+	return -1;
+    }
+    field_info_element->descriptor_index = ntohs(field_info_element->descriptor_index);
+
+    if (read_bytes(fd, &field_info_element->attributes_count, sizeof(field_info_element->attributes_count))) {
+	fprintf(stderr, "%s: could not read field info attributes_count\n", program);
+	return -1;
+    }
+    field_info_element->attributes_count = ntohs(field_info_element->attributes_count);
+
+    if (field_info_element->attributes_count) {
+        field_info_element->attributes = calloc(field_info_element->attributes_count, sizeof(attribute_info_t));
+    }
+    attribute_info_t *attribute_info = field_info_element->attributes;
+
+    if (read_attributes(fd, attribute_info, field_info_element->attributes_count) < 0) {
+        fprintf(stderr, "%s: failed to read %d attributes of field\n" , program, field_info_element->attributes_count);
+        return -1;
+    }
+
+    return 0;
+}
+
+static int read_attributes(int fd, attribute_info_t *attribute_info, int count) {
+    int i;
+    for (i = 0; i < count; i++) {
+        if (read_bytes(fd, &attribute_info->attribute_name_index, sizeof(attribute_info->attribute_name_index))) {
+            fprintf(stderr, "%s: could not read attribute info name index %d\n", program, i);
+            return -1;
+        }
+        attribute_info->attribute_name_index = ntohs(attribute_info->attribute_name_index);
+
+        if (read_bytes(fd, &attribute_info->attribute_length, sizeof(attribute_info->attribute_length))) {
+            fprintf(stderr, "%s: could not read attribute info length %d\n", program, i);
+            return -1;
+        }
+        attribute_info->attribute_length = ntohl(attribute_info->attribute_length);
+
+        if (attribute_info->attribute_length) {
+            attribute_info->info = malloc(attribute_info->attribute_length + 1);
+            if (read_bytes(fd, attribute_info->info, attribute_info->attribute_length)) {
+                fprintf(stderr, "%s: could not read attribute info %d\n", program, i);
+                return -1;
+            }
+            attribute_info->info[attribute_info->attribute_length] = '\0';
+        }
+    }
+    return 0;
 }
 
 static int read_constant_class(int fd, cp_info_t *constant_pool_element){
@@ -455,6 +575,12 @@ static void print_class_file (class_file_t *class_file) {
     printf("constant_pool_count: %d\n", class_file->constant_pool_count);
     print_constant_pool(class_file);
     print_access_flags(class_file);
+    print_this_class(class_file);
+    print_super_class(class_file);
+    print_interfaces_count(class_file);
+    print_interfaces(class_file);
+    print_fields_count(class_file);
+    print_fields(class_file);
 }
 
 static void print_constant_pool(class_file_t *class_file) {
@@ -576,6 +702,78 @@ static void print_access_flags(class_file_t *class_file) {
     }
     fprintf(stderr, "\n");
 }
+
+static void print_this_class(class_file_t *class_file) {
+    if (class_file->this_class == 0) {
+        fprintf(stderr, "%s: THIS_CLASS: INVALID1\n", program);
+    }
+    else {
+        cp_info_t *cp = class_file->constant_pool;
+        fprintf(stderr, "%s: THIS_CLASS: [%d] %s\n", program,
+                cp[class_file->this_class-1].u.cp_class_info.name_index,
+                cp[cp[class_file->this_class-1].u.cp_class_info.name_index-1].u.cp_utf8.bytes);
+    }
+}
+
+static void print_super_class(class_file_t *class_file) {
+    cp_info_t *cp = class_file->constant_pool;
+    if (class_file->super_class == 0) {
+        fprintf(stderr, "%s: SUPER_CLASS: None!\n", program);
+    }
+    else {
+        fprintf(stderr, "%s: SUPER_CLASS: [%d] %s\n", program,
+                cp[class_file->super_class-1].u.cp_class_info.name_index,
+                cp[cp[class_file->super_class-1].u.cp_class_info.name_index-1].u.cp_utf8.bytes);
+    }
+}
+
+static void print_interfaces_count(class_file_t *class_file) {
+    fprintf(stderr, "%s: INTERFACES_COUNT: %d\n", program, class_file->interfaces_count);
+}
+
+static void print_interfaces(class_file_t *class_file) {
+    fprintf(stderr, "%s: INTERFACES: [", program);
+    int i;
+    for (i = 0; i < class_file->interfaces_count; i++) {
+        if (i) {fprintf(stderr, ", ");}
+        fprintf(stderr, "%d", class_file->interfaces[i]);
+    }
+    fprintf(stderr, "]\n", program);
+}
+
+static void print_fields_count(class_file_t *class_file) {
+    fprintf(stderr, "%s: FIELDS_COUNT: %d\n", program, class_file->fields_count);
+}
+
+static void print_fields(class_file_t *class_file) {
+    fprintf(stderr, "%s: FIELDS: [\n", program);
+    fprintf(stderr, "%s: ]\n", program);
+}
+
+static void print_field(field_info_t *field_info_element) {
+    fprintf(stderr, "%s: {access_flags=%d, name_index=%d, descriptor_index=%d, attributes_count=%d ",
+            program,
+            field_info_element->access_flags,
+            field_info_element->name_index,
+            field_info_element->descriptor_index,
+            field_info_element->attributes_count);
+    print_attributes(field_info_element->attributes_count, field_info_element->attributes);
+    fprintf(stderr, "}\n");
+}
+
+static void print_attributes(u2_t attributes_count, attribute_info_t *attribute) {
+    int i;
+    fprintf(stderr, "attributes = {");
+    for (i = 0; i < attributes_count; i++) {
+        fprintf(stderr, "[name=%d, length=%d, value='%s']",
+                attribute->attribute_name_index,
+                attribute->attribute_length,
+                attribute->info);
+        attribute++;
+    }
+    fprintf(stderr, "}");
+}
+
 
 static int read_bytes(int fd, void *buffer, int requested) {
     if (requested <= 0) {
