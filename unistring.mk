@@ -1,0 +1,3 @@
+UNISTRING_TOP=/home/ald/prj/unistring/u
+UNISTRING_INC=$(UNISTRING_TOP)/include
+UNISTRING_LIB=$(UNISTRING_TOP)/lib
